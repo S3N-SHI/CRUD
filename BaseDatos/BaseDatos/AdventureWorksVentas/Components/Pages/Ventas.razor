@@ -1,0 +1,364 @@
+@page "/ventas"
+@page "/ventas/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.VentaService VentaService
+@inject AdventureWorksVentas.Services.ProductoService ProductoService
+@inject AdventureWorksVentas.Services.ClienteService ClienteService
+@inject AdventureWorksVentas.Services.VendedorService VendedorService
+@inject IJSRuntime JS
+
+<PageTitle>Movimiento de Ventas</PageTitle>
+
+<h3>Movimiento de Ventas</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Movimiento de Ventas
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Número de Venta</label>
+                <input class="form-control"
+                       @bind="venta.SalesOrderID"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Fecha</label>
+                <input class="form-control"
+                       value="@venta.OrderDate.ToString("yyyy-MM-dd")"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Cliente</label>
+
+                <select class="form-select" @bind="clienteSeleccionado">
+
+                  <option value="0">Seleccione...</option>
+
+                  @foreach(var c in listaClientes)
+                  {
+                     <option value="@c.CustomerID">
+                         @c.NombreCliente
+                     </option>
+                   }
+
+                </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Vendedor</label>
+                <input class="form-control"
+                       @bind="venta.Vendedor"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Territorio</label>
+                <input class="form-control"
+                       @bind="venta.Territorio"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Subtotal</label>
+                <input class="form-control"
+                       @bind="venta.SubTotal"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">IVA</label>
+                <input class="form-control"
+                       @bind="venta.TaxAmt"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Flete</label>
+                <input class="form-control"
+                       @bind="venta.Freight"
+                       readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Total</label>
+                <input class="form-control fw-bold"
+                       @bind="venta.TotalDue"
+                       readonly />
+            </div>
+
+        </div>
+
+        <hr />
+
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-success" @onclick="Nuevo">Nuevo</button>
+            <button class="btn btn-primary" @onclick="Guardar">Guardar</button>
+            <button class="btn btn-info text-white" @onclick="MostrarBusqueda">Buscar</button>
+            <a class="btn btn-secondary" href="/consulta-ventas">Consultar</a>
+        </div>
+
+        <hr />
+
+        <h5>Agregar Producto</h5>
+
+        <div class="row mb-4">
+
+            <div class="col-md-6">
+                <label class="form-label">Producto</label>
+                <select class="form-select" @bind="productoSeleccionado">
+                    <option value="0">Seleccione...</option>
+                    @foreach (var p in listaProductos)
+                    {
+                        <option value="@p.ProductID">
+                            @p.ProductID - @p.NombreProducto
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Cantidad</label>
+                <input class="form-control" type="number" @bind="cantidadProducto" min="1" />
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-success w-100" @onclick="AgregarProducto">
+                    Agregar
+                </button>
+            </div>
+
+        </div>
+
+        <h5>Detalle de la Venta</h5>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Descuento</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (detalleVenta != null && detalleVenta.Any())
+                    {
+                        @foreach (var item in detalleVenta)
+                        {
+                            <tr>
+                                <td>@item.Producto</td>
+                                <td>@item.OrderQty</td>
+                                <td>@item.UnitPrice.ToString("C")</td>
+                                <td>@item.UnitPriceDiscount.ToString("P")</td>
+                                <td>@item.Total.ToString("C")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No hay productos agregados al detalle</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show" style="display:block;background-color:rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Buscar Venta</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarBusqueda"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-bold">Venta</label>
+                    <select class="form-select" @bind="ventaSeleccionada">
+                        <option value="">-- Seleccione una venta --</option>
+                        @foreach (var item in listaVentas)
+                        {
+                            <option value="@item.SalesOrderID">
+                                @item.SalesOrderID - @item.Cliente
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CerrarBusqueda">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="AceptarBusqueda">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? id { get; set; }
+    
+    // Listados para catálogos de selección
+    private List<ProductoListaDTO> listaProductos = new();
+    private List<ClienteListaDTO> listaClientes = new();
+    private List<VendedorListaDTO> listaVendedores = new(); // Añadido DTO faltante
+    private List<VentaListaDTO> listaVentas = new();
+
+    // Variables de control de formulario
+    private int productoSeleccionado = 0;
+    private short cantidadProducto = 1;
+    private int clienteSeleccionado;
+    private int? ventaSeleccionada;
+    private bool mostrarBusqueda = false;
+
+    // Datos de la Venta actual
+    private VentaDTO venta = new();
+    private List<VentaDTO> ventas = new();
+    private List<VentaDetalleDTO> detalleVenta = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Se cargan los catálogos globales de la base de datos UNA sola vez al iniciar el componente
+        ventas = await VentaService.ConsultarVentas();
+        listaVentas = await VentaService.ConsultarListaVentas();
+        listaProductos = await ProductoService.ConsultarListaProductos();
+        listaClientes = await ClienteService.ConsultarListaClientes();
+        listaVendedores = await VendedorService.ConsultarListaVendedores(); // Inyectado y asignado correctamente
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Nota: Quitamos las cargas de catálogos de aquí para que no vuelvan a consultar la base de datos 
+        // innecesariamente cada vez que cambien los parámetros del componente.
+
+        if (id.HasValue)
+        {
+            VentaDTO? resultado = await VentaService.BuscarVenta(id.Value);
+
+            if (resultado != null)
+            {
+                venta = resultado;
+                detalleVenta = await VentaService.ConsultarDetalleVenta(id.Value);
+            }
+        }
+        else
+        {
+            venta = new VentaDTO();
+            detalleVenta = new List<VentaDetalleDTO>();
+        }
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task AceptarBusqueda()
+    {
+        if (!ventaSeleccionada.HasValue)
+            return;
+
+        var resultado = await VentaService.BuscarVenta(ventaSeleccionada.Value);
+
+        if (resultado != null)
+        {
+            venta = resultado;
+            detalleVenta = await VentaService.ConsultarDetalleVenta(ventaSeleccionada.Value);
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+
+    private void Nuevo()
+    {
+        venta = new VentaDTO();
+        detalleVenta.Clear();
+        productoSeleccionado = 0;
+        cantidadProducto = 1;
+    }
+
+    private async Task AgregarProducto()
+    {
+        if (productoSeleccionado == 0 || cantidadProducto <= 0)
+            return;
+
+        ProductoDTO? prod = await ProductoService.BuscarProducto(productoSeleccionado);
+
+        if (prod == null)
+            return;
+
+        var nuevoDetalle = new VentaDetalleDTO
+        {
+            ProductID = prod.ProductID,
+            Producto = prod.NombreProducto,
+            OrderQty = cantidadProducto,
+            UnitPrice = prod.ListPrice,
+            UnitPriceDiscount = 0,
+            Total = cantidadProducto * prod.ListPrice
+        };
+
+        detalleVenta.Add(nuevoDetalle);
+
+        // Recálculo automático de impuestos y fletes
+        venta.SubTotal += nuevoDetalle.Total;
+        venta.TaxAmt = venta.SubTotal * 0.12m;
+        venta.Freight = venta.SubTotal * 0.03m;
+        venta.TotalDue = venta.SubTotal + venta.TaxAmt + venta.Freight;
+
+        productoSeleccionado = 0;
+        cantidadProducto = 1;
+    }
+
+    private async Task Guardar()
+    {
+        if (!detalleVenta.Any())
+        {
+            await JS.InvokeVoidAsync("alert", "No puedes guardar una venta sin productos.");
+            return;
+        }
+
+        int nuevoID = await VentaService.CrearCabecera(
+            venta.CustomerID,
+            venta.BusinessEntityID);
+
+        foreach (var item in detalleVenta)
+        {
+            await VentaService.AgregarDetalle(
+                nuevoID,
+                item.ProductID,
+                item.OrderQty);
+        }
+
+        var resultado = await VentaService.BuscarVenta(nuevoID);
+
+        if (resultado != null)
+        {
+            venta = resultado;
+            detalleVenta = await VentaService.ConsultarDetalleVenta(nuevoID);
+        }
+
+        listaVentas = await VentaService.ConsultarListaVentas();
+
+        await JS.InvokeVoidAsync("alert", "Venta registrada correctamente.");
+    }
+}

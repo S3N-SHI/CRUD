@@ -1,0 +1,103 @@
+@page "/consulta-productos"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.ProductoService ProductoService
+
+<PageTitle>Consulta de Productos</PageTitle>
+
+<h3>Consulta de Productos</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @(exito ? "alert-success" : "alert-danger")">
+        @mensaje
+    </div>
+}
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Precio</th>
+            <th>Categoría</th>
+            <th>Subcategoría</th>
+            <th>Acción</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+    @foreach (var item in productos)
+    {
+        <tr>
+
+            <td>@item.ProductID</td>
+
+            <td>@item.NombreProducto</td>
+
+            <td>@item.ListPrice</td>
+
+            <td>@item.Categoria</td>
+
+            <td>@item.Subcategoria</td>
+
+            <td>
+
+            <button class="btn btn-success btn-sm me-2"
+                     @onclick='() => Seleccionar(item.ProductID)'>
+                Seleccionar
+            </button>
+
+            <button class="btn btn-danger btn-sm"
+                     @onclick='() => Eliminar(item.ProductID)'>
+                Eliminar
+            </button>
+
+</td>
+
+        </tr>
+    }
+
+    </tbody>
+
+</table>
+
+@code{
+     
+    private string mensaje = "";
+    private bool exito = true;
+    private List<ProductoDTO> productos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        productos = await ProductoService.ConsultarProductos();
+    }
+    void Seleccionar(int id)
+    {
+    
+    Navigation.NavigateTo($"/productos/{id}");
+    }
+
+   private async Task Eliminar(int id)
+    {
+    bool eliminado = await ProductoService.EliminarProducto(id);
+
+    if (eliminado)
+    {
+        exito = true;
+        mensaje = "✅ Producto eliminado correctamente.";
+    }
+    else
+    {
+        exito = false;
+        mensaje = "❌ No se puede eliminar porque el producto tiene registros relacionados.";
+    }
+
+    productos = await ProductoService.ConsultarProductos();
+    }
+}

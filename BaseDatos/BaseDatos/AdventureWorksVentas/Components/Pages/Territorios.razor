@@ -1,0 +1,189 @@
+@page "/territorios"
+@page "/territorios/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.TerritorioService TerritorioService
+
+<PageTitle>Territorios</PageTitle>
+
+<h3>Catálogo de Territorios</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Territorios - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+        <label>Código</label>
+        <input class="form-control"
+               @bind="territorio.TerritoryID"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Nombre</label>
+        <input class="form-control"
+               @bind="territorio.NombreTerritorio"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Código País</label>
+        <input class="form-control"
+               @bind="territorio.CountryRegionCode"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Grupo</label>
+        <input class="form-control"
+               @bind="territorio.Grupo"
+               readonly />
+    </div>
+
+</div>
+
+<hr />
+
+<button class="btn btn-info me-2"
+        @onclick="MostrarBusqueda">
+    Buscar
+</button>
+
+<a class="btn btn-secondary"
+   href="/consulta-territorios">
+    Consultar
+</a>
+
+</div>
+
+</div>
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block;background-color:rgba(0,0,0,0.5);">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title">
+                        Buscar Territorio
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Territorio</label>
+
+                    <select class="form-select"
+                            @bind="territorioSeleccionado">
+
+                        <option value="">-- Seleccione un territorio --</option>
+
+                        @foreach (var item in listaTerritorios)
+                        {
+                            <option value="@item.TerritoryID">
+                                @item.TerritoryID - @item.NombreTerritorio
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="AceptarBusqueda">
+                        Aceptar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+@code
+{
+    [Parameter]
+    public int? id { get; set; }
+
+    private TerritorioDTO territorio = new();
+
+    private List<TerritorioDTO> territorios = new();
+
+    private List<TerritorioListaDTO> listaTerritorios = new();
+
+    private int? territorioSeleccionado;
+
+    private bool mostrarBusqueda = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        territorios = await TerritorioService.ConsultarTerritorios();
+
+        listaTerritorios = await TerritorioService.ConsultarListaTerritorios();
+
+        if (id.HasValue)
+        {
+            var resultado = await TerritorioService.BuscarTerritorio(id.Value);
+
+            if (resultado != null)
+            {
+                territorio = resultado;
+            }
+        }
+        else
+        {
+            territorio = new TerritorioDTO();
+        }
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task AceptarBusqueda()
+    {
+        if (!territorioSeleccionado.HasValue)
+            return;
+
+        var resultado = await TerritorioService.BuscarTerritorio(territorioSeleccionado.Value);
+
+        if (resultado != null)
+        {
+            territorio = resultado;
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+}

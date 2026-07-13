@@ -1,0 +1,264 @@
+@page "/subcategorias"
+@page "/subcategorias/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.SubcategoriaService SubcategoriaService
+@inject AdventureWorksVentas.Services.CategoriaService CategoriaService
+
+<PageTitle>Subcategorías</PageTitle>
+
+<h3>Catálogo de Subcategorías</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @(exito ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+        @mensaje
+        <button type="button" class="btn-close" @onclick="() => mensaje = string.Empty" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Subcategorías - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Código</label>
+                <input class="form-control"
+                       @bind="subcategoria.ProductSubcategoryID"
+                       readonly />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Nombre Subcategoría</label>
+                <input class="form-control"
+                       @bind="subcategoria.NombreSubcategoria" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Categoría</label>
+
+                <select class="form-select"
+                        @bind="subcategoria.ProductCategoryID">
+
+                    <option value="">-- Seleccione una categoría --</option>
+
+                    @foreach (var item in categorias)
+                    {
+                        <option value="@item.ProductCategoryID">
+                            @item.NombreCategoria
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+        </div>
+
+        <hr />
+
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-success" @onclick="Nuevo">
+                <i class="bi bi-plus-circle"></i> Nuevo
+            </button>
+
+            <button class="btn btn-warning text-white" @onclick="Modificar">
+                <i class="bi bi-pencil-square"></i> Modificar
+            </button>
+
+            <button class="btn btn-danger" @onclick="Eliminar">
+                <i class="bi bi-trash"></i> Eliminar
+            </button>
+
+            <button class="btn btn-info text-white" @onclick="MostrarBusqueda">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+
+            <button class="btn btn-primary" @onclick="Guardar">
+                <i class="bi bi-download"></i> Guardar
+            </button>
+
+            <button class="btn btn-dark" @onclick="Cancelar">
+                Cancelar
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block; background-color:rgba(0,0,0,0.5);" 
+         tabindex="-1">
+
+        <div class="modal-dialog modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Buscar Subcategoría</h5>
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <label class="form-label fw-bold">Subcategoría</label>
+
+                    <select class="form-select"
+                            @bind="subcategoriaSeleccionada">
+
+                        <option value="">-- Seleccione una subcategoría --</option>
+
+                        @foreach (var item in listaSubcategorias)
+                        {
+                            <option value="@item.ProductSubcategoryID">
+                                @item.ProductSubcategoryID - @item.NombreSubcategoria
+                            </option>
+                        }
+
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="BuscarSubcategoria">
+                        Aceptar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string mensaje = "";
+    private bool exito = true;
+
+    [Parameter]
+    public int? id { get; set; }
+
+    private SubcategoriaDTO subcategoria = new();
+    private List<SubcategoriaDTO> subcategorias = new();
+    private List<SubcategoriaListaDTO> listaSubcategorias = new();
+    private List<CategoriaDTO> categorias = new();
+
+    private int? subcategoriaSeleccionada;
+    private bool mostrarBusqueda = false;
+
+    // Se ejecuta una sola vez al cargar la página
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await CategoriaService.ConsultarCategorias();
+        subcategorias = await SubcategoriaService.ConsultarSubcategorias();
+        listaSubcategorias = await SubcategoriaService.ConsultarListaSubcategorias();
+    }
+
+    // Se ejecuta cada vez que los parámetros (como el ID de la URL) cambian
+    protected override async Task OnParametersSetAsync()
+    {
+        if (id.HasValue)
+        {
+            var resultado = await SubcategoriaService.BuscarSubcategoria(id.Value);
+
+            if (resultado != null)
+            {
+                subcategoria = resultado;
+            }
+        }
+        else
+        {
+            subcategoria = new SubcategoriaDTO();
+        }
+    }
+
+    private async Task Guardar()
+    {
+        await SubcategoriaService.GuardarSubcategoria(subcategoria);
+
+        mensaje = "Subcategoría guardada correctamente.";
+        exito = true;
+
+        subcategorias = await SubcategoriaService.ConsultarSubcategorias();
+        listaSubcategorias = await SubcategoriaService.ConsultarListaSubcategorias();
+
+        Nuevo();
+    }
+
+    private async Task Modificar()
+    {
+        await SubcategoriaService.ActualizarSubcategoria(subcategoria);
+
+        mensaje = "Subcategoría actualizada correctamente.";
+        exito = true;
+
+        subcategorias = await SubcategoriaService.ConsultarSubcategorias();
+        listaSubcategorias = await SubcategoriaService.ConsultarListaSubcategorias();
+    }
+
+    private async Task Eliminar()
+    {
+        if (subcategoria.ProductSubcategoryID == 0)
+            return;
+
+        await SubcategoriaService.EliminarSubcategoria(subcategoria.ProductSubcategoryID);
+
+        mensaje = "Subcategoría eliminada correctamente.";
+        exito = true;
+
+        subcategorias = await SubcategoriaService.ConsultarSubcategorias();
+        listaSubcategorias = await SubcategoriaService.ConsultarListaSubcategorias();
+
+        Nuevo();
+    }
+
+    private void Nuevo()
+    {
+        subcategoria = new SubcategoriaDTO();
+    }
+
+    private void Cancelar()
+    {
+        subcategoria = new SubcategoriaDTO();
+        mensaje = "";
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task BuscarSubcategoria()
+    {
+        if (!subcategoriaSeleccionada.HasValue)
+            return;
+
+        var resultado = await SubcategoriaService.BuscarSubcategoria(subcategoriaSeleccionada.Value);
+
+        if (resultado != null)
+        {
+            subcategoria = resultado;
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+}

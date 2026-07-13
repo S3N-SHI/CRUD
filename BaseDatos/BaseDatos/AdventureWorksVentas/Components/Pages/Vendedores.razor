@@ -1,0 +1,210 @@
+@page "/vendedores"
+@page "/vendedores/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.VendedorService VendedorService
+
+<PageTitle>Vendedores</PageTitle>
+
+<h3>Catálogo de Vendedores</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Vendedores - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+        <label>Código</label>
+        <input class="form-control"
+               @bind="vendedor.BusinessEntityID"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Nombre</label>
+        <input class="form-control"
+               @bind="vendedor.NombreVendedor"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Territorio</label>
+        <input class="form-control"
+               @bind="vendedor.TerritoryID"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Cuota de Venta</label>
+        <input class="form-control"
+               @bind="vendedor.SalesQuota"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Bonificación</label>
+        <input class="form-control"
+               @bind="vendedor.Bonus"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Comisión</label>
+        <input class="form-control"
+               @bind="vendedor.CommissionPct"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Ventas Acumuladas</label>
+        <input class="form-control"
+               @bind="vendedor.SalesYTD"
+               readonly />
+    </div>
+
+</div>
+
+<hr />
+
+<button class="btn btn-info me-2"
+        @onclick="MostrarBusqueda">
+    Buscar
+</button>
+
+<a class="btn btn-secondary"
+   href="/consulta-vendedores">
+    Consultar
+</a>
+
+</div>
+
+</div>
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block;background-color:rgba(0,0,0,0.5);">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title">
+                        Buscar Vendedor
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Vendedor</label>
+
+                    <select class="form-select"
+                            @bind="vendedorSeleccionado">
+
+                        <option value="">-- Seleccione un vendedor --</option>
+
+                        @foreach (var item in listaVendedores)
+                        {
+                            <option value="@item.BusinessEntityID">
+                                @item.BusinessEntityID - @item.NombreVendedor
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="AceptarBusqueda">
+                        Aceptar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+@code
+{
+    [Parameter]
+    public int? id { get; set; }
+
+    private VendedorDTO vendedor = new();
+
+    private List<VendedorDTO> vendedores = new();
+
+    private List<VendedorListaDTO> listaVendedores = new();
+
+    private int? vendedorSeleccionado;
+
+    private bool mostrarBusqueda = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        vendedores = await VendedorService.ConsultarVendedores();
+
+        listaVendedores = await VendedorService.ConsultarListaVendedores();
+
+        if (id.HasValue)
+        {
+            var resultado = await VendedorService.BuscarVendedor(id.Value);
+
+            if (resultado != null)
+            {
+                vendedor = resultado;
+            }
+        }
+        else
+        {
+            vendedor = new VendedorDTO();
+        }
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task AceptarBusqueda()
+    {
+        if (!vendedorSeleccionado.HasValue)
+            return;
+
+        var resultado = await VendedorService.BuscarVendedor(vendedorSeleccionado.Value);
+
+        if (resultado != null)
+        {
+            vendedor = resultado;
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+}

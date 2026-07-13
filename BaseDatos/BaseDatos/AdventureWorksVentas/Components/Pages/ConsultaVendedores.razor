@@ -1,0 +1,71 @@
+@page "/consulta-vendedores"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
+
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.VendedorService VendedorService
+
+<PageTitle>Consulta de Vendedores</PageTitle>
+
+<h3>Consulta de Vendedores</h3>
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+        <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Territorio</th>
+            <th>Cuota</th>
+            <th>Bonificación</th>
+            <th>Comisión</th>
+            <th>Ventas YTD</th>
+            <th>Acción</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in vendedores)
+        {
+            <tr>
+
+                <td>@item.BusinessEntityID</td>
+                <td>@item.NombreVendedor</td>
+                <td>@item.TerritoryID</td>
+                <td>@item.SalesQuota</td>
+                <td>@item.Bonus</td>
+                <td>@item.CommissionPct</td>
+                <td>@item.SalesYTD</td>
+
+                <td>
+
+                    <button class="btn btn-success btn-sm"
+                            @onclick='() => Seleccionar(item.BusinessEntityID)'>
+                        Seleccionar
+                    </button>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+@code
+{
+    private List<VendedorDTO> vendedores = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        vendedores = await VendedorService.ConsultarVendedores();
+    }
+
+    private void Seleccionar(int id)
+    {
+        Navigation.NavigateTo($"/vendedores/{id}");
+    }
+}

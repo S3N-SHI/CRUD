@@ -1,0 +1,80 @@
+@page "/consulta-ventas"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.VentaService VentaService
+@inject NavigationManager Navigation
+
+<PageTitle>Consulta de Ventas</PageTitle>
+
+<h3>Consulta de Ventas</h3>
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>Venta</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Vendedor</th>
+            <th>Territorio</th>
+            <th>Total</th>
+            <th>Acción</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in ventas)
+        {
+            <tr>
+
+                <td>@item.SalesOrderID</td>
+
+                <td>@item.OrderDate.ToShortDateString()</td>
+
+                <td>@item.Cliente</td>
+
+                <td>@item.Vendedor</td>
+
+                <td>@item.Territorio</td>
+
+                <td>@item.TotalDue.ToString("C")</td>
+
+                <td>
+
+                    <button class="btn btn-success btn-sm"
+                            @onclick='() => Seleccionar(item.SalesOrderID)'>
+
+                        Seleccionar
+
+                    </button>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+@code
+{
+    private List<VentaDTO> ventas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        ventas = await VentaService.ConsultarVentas();
+    }
+
+    private void Seleccionar(int id)
+    {
+        Navigation.NavigateTo($"/ventas/{id}");
+    }
+}

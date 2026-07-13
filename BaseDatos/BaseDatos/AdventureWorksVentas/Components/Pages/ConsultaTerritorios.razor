@@ -1,0 +1,70 @@
+@page "/consulta-territorios"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
+
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.TerritorioService TerritorioService
+
+<PageTitle>Consulta de Territorios</PageTitle>
+
+<h3>Consulta de Territorios</h3>
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>Código</th>
+            <th>Territorio</th>
+            <th>País</th>
+            <th>Grupo</th>
+            <th>Acción</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in territorios)
+        {
+            <tr>
+
+                <td>@item.TerritoryID</td>
+
+                <td>@item.NombreTerritorio</td>
+
+                <td>@item.CountryRegionCode</td>
+
+                <td>@item.Grupo</td>
+
+                <td>
+
+                    <button class="btn btn-success btn-sm"
+                            @onclick='() => Seleccionar(item.TerritoryID)'>
+                        Seleccionar
+                    </button>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+@code
+{
+    private List<TerritorioDTO> territorios = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        territorios = await TerritorioService.ConsultarTerritorios();
+    }
+
+    private void Seleccionar(int id)
+    {
+        Navigation.NavigateTo($"/territorios/{id}");
+    }
+}

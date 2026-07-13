@@ -1,0 +1,187 @@
+@page "/clientes"
+@page "/clientes/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.ClienteService ClienteService
+
+<PageTitle>Clientes</PageTitle>
+
+<h3>Catálogo de Clientes</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Clientes - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label>Código</label>
+                <input class="form-control"
+                       @bind="cliente.CustomerID"
+                       readonly />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Nombre</label>
+                <input class="form-control"
+                       @bind="cliente.NombreCliente"
+                       readonly />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Correo</label>
+                <input class="form-control"
+                       @bind="cliente.Email"
+                       readonly />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Teléfono</label>
+                <input class="form-control"
+                       @bind="cliente.Telefono"
+                       readonly />
+            </div>
+
+        </div>
+
+        <hr />
+
+        <button class="btn btn-info me-2"
+                @onclick="MostrarBusqueda">
+            Buscar
+        </button>
+
+        <a class="btn btn-secondary"
+           href="/consulta-clientes">
+            Consultar
+        </a>
+
+    </div>
+
+</div>
+
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block;background-color:rgba(0,0,0,0.5);">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title">
+                        Buscar Cliente
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Cliente</label>
+
+                    <select class="form-select"
+                            @bind="clienteSeleccionado">
+
+                        <option value="">-- Seleccione un cliente --</option>
+
+                        @foreach (var item in listaClientes)
+                        {
+                            <option value="@item.CustomerID">
+                                @item.CustomerID - @item.NombreCliente
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="AceptarBusqueda">
+                        Aceptar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code
+{
+    [Parameter]
+    public int? id { get; set; }
+
+    private ClienteDTO cliente = new();
+
+    private List<ClienteDTO> listaClientes = new();
+
+    private int? clienteSeleccionado;
+
+    private bool mostrarBusqueda = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        listaClientes = await ClienteService.ConsultarClientes();
+
+        if (id.HasValue)
+        {
+            var resultado = await ClienteService.BuscarCliente(id.Value);
+
+            if (resultado != null)
+            {
+                cliente = resultado;
+            }
+        }
+        else
+        {
+            cliente = new ClienteDTO();
+        }
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task AceptarBusqueda()
+    {
+        if (!clienteSeleccionado.HasValue)
+            return;
+
+        var resultado = await ClienteService.BuscarCliente(clienteSeleccionado.Value);
+
+        if (resultado != null)
+        {
+            cliente = resultado;
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+}

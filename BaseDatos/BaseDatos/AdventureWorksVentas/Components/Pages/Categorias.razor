@@ -1,0 +1,262 @@
+@page "/categorias"
+@page "/categorias/{id:int}"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.CategoriaService CategoriaService
+
+<PageTitle>Categorías</PageTitle>
+
+<h3>Catálogo de Categorías</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @(exito ? "alert-success" : "alert-danger")">
+        @mensaje
+    </div>
+}
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Categorías - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+
+<div class="row">
+
+    <div class="col-md-6 mb-3">
+        <label>Código</label>
+        <input class="form-control"
+               @bind="categoria.ProductCategoryID"
+               readonly />
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label>Nombre Categoría</label>
+        <input class="form-control"
+               @bind="categoria.NombreCategoria" />
+    </div>
+
+</div>
+
+<hr />
+
+<button class="btn btn-success me-2"
+        @onclick="Nuevo">
+    Nuevo
+</button>
+
+<button class="btn btn-warning me-2"
+        @onclick="Modificar">
+    Modificar
+</button>
+
+<button class="btn btn-info me-2"
+        @onclick="MostrarBusqueda">
+    Buscar
+</button>
+
+<a class="btn btn-secondary me-2"
+   href="/consulta-categorias">
+    Consultar
+</a>
+
+<button class="btn btn-primary me-2"
+        @onclick="Guardar">
+    Guardar
+</button>
+
+<button class="btn btn-dark"
+        @onclick="Cancelar">
+    Cancelar
+</button>
+
+</div>
+
+</div>
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block; background-color:rgba(0,0,0,0.5);">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title">
+                        Buscar Categoría
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Categoría</label>
+
+                    <select class="form-select"
+                            @bind="categoriaSeleccionada">
+
+                        <option value="">-- Seleccione una categoría --</option>
+
+                        @foreach (var item in listaCategorias)
+                        {
+                            <option value="@item.ProductCategoryID">
+                                @item.ProductCategoryID - @item.NombreCategoria
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="BuscarCategoria">
+                        Aceptar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+@code
+{
+    private string mensaje = "";
+    private bool exito = true;
+
+    [Parameter]
+    public int? id { get; set; }
+
+    private CategoriaDTO categoria = new();
+
+    private List<CategoriaDTO> categorias = new();
+
+    private List<CategoriaListaDTO> listaCategorias = new();
+
+    private int? categoriaSeleccionada;
+
+    private bool mostrarBusqueda = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        categorias = await CategoriaService.ConsultarCategorias();
+
+        listaCategorias = await CategoriaService.ConsultarListaCategorias();
+
+        if (id.HasValue)
+        {
+            var resultado = await CategoriaService.BuscarCategoria(id.Value);
+
+            if (resultado != null)
+                categoria = resultado;
+        }
+        else
+        {
+            categoria = new CategoriaDTO();
+        }
+    }
+
+    private async Task Guardar()
+    {
+        await CategoriaService.GuardarCategoria(categoria);
+
+        mensaje = "Categoría guardada correctamente.";
+        exito = true;
+
+        categorias = await CategoriaService.ConsultarCategorias();
+        listaCategorias = await CategoriaService.ConsultarListaCategorias();
+
+        Nuevo();
+    }
+
+    private async Task Modificar()
+    {
+        await CategoriaService.ActualizarCategoria(categoria);
+
+        mensaje = "Categoría actualizada correctamente.";
+        exito = true;
+
+        categorias = await CategoriaService.ConsultarCategorias();
+        listaCategorias = await CategoriaService.ConsultarListaCategorias();
+    }
+
+    private async Task Eliminar()
+    {
+        if (categoria.ProductCategoryID == 0)
+            return;
+
+        bool eliminado = await CategoriaService.EliminarCategoria(categoria.ProductCategoryID);
+
+        if (eliminado)
+        {
+            mensaje = "Categoría eliminada correctamente.";
+            exito = true;
+
+            Nuevo();
+        }
+        else
+        {
+            mensaje = "No se puede eliminar la categoría porque tiene subcategorías asociadas.";
+            exito = false;
+        }
+
+        categorias = await CategoriaService.ConsultarCategorias();
+        listaCategorias = await CategoriaService.ConsultarListaCategorias();
+    }
+
+    private void Nuevo()
+    {
+        categoria = new CategoriaDTO();
+    }
+
+    private void Cancelar()
+    {
+        categoria = new CategoriaDTO();
+        mensaje = "";
+    }
+
+    private void MostrarBusqueda()
+    {
+        mostrarBusqueda = true;
+    }
+
+    private async Task BuscarCategoria()
+    {
+        if (!categoriaSeleccionada.HasValue)
+            return;
+
+        var resultado = await CategoriaService.BuscarCategoria(categoriaSeleccionada.Value);
+
+        if (resultado != null)
+        {
+            categoria = resultado;
+        }
+
+        mostrarBusqueda = false;
+    }
+
+    private void CerrarBusqueda()
+    {
+        mostrarBusqueda = false;
+    }
+}

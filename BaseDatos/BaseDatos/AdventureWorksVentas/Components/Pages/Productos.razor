@@ -1,0 +1,285 @@
+@page "/productos"
+@page "/productos/{id:int}"
+@rendermode InteractiveServer
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.ProductoService ProductoService
+@inject AdventureWorksVentas.Services.SubcategoriaService SubcategoriaService
+
+<PageTitle>Productos</PageTitle>
+
+<h3>Catálogo de Productos</h3>
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @(exito ? "alert-success" : "alert-danger")">
+        @mensaje
+    </div>
+}
+
+<div class="card shadow mt-3">
+    <div class="card-header bg-primary text-white">
+        Productos - Catálogo (Maestro)
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label>Código Producto</label>
+                <input class="form-control"
+                       @bind="producto.ProductID"
+                       readonly />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Unidad de Medida</label>
+                <input class="form-control"
+                       @bind="producto.SizeUnitMeasureCode" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+               <label>Nombre Producto</label>
+               <input class="form-control"
+                      @bind="producto.NombreProducto" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Número de Producto</label>
+                <input class="form-control" @bind="producto.ProductNumber" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Subcategoría</label>
+
+                <select class="form-select"
+                        @bind="producto.ProductSubcategoryID">
+
+                    <option value="">-- Seleccione una subcategoría --</option>
+
+                     @foreach (var item in subcategorias)
+                    {
+                         <option value="@item.ProductSubcategoryID">
+                             @item.NombreSubcategoria
+                        </option>
+                    }
+
+                </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label>Precio</label>
+                <input class="form-control" 
+                       @bind="producto.ListPrice" />
+            </div>
+
+        </div>
+
+        <hr />
+
+        <button class="btn btn-success me-2"
+                 @onclick="Nuevo">
+            Nuevo
+        </button>
+
+        <button class="btn btn-warning me-2"
+                @onclick="Modificar">
+            Modificar
+        </button>
+
+        <button class="btn btn-info me-2"
+                @onclick="MostrarBusqueda">
+            Buscar
+        </button>
+
+        <a class="btn btn-secondary me-2" href="/consulta-productos">
+           Consultar
+                      </a>
+
+       <button class="btn btn-primary me-2"
+               @onclick="Guardar">
+            Guardar
+        </button>
+
+        <button class="btn btn-dark"
+                @onclick="Cancelar">
+            Cancelar
+        </button>
+ 
+    </div>
+
+</div>
+@if (mostrarBusqueda)
+{
+    <div class="modal fade show"
+         style="display:block; background-color:rgba(0,0,0,0.5);">
+
+        <div class="modal-dialog">
+
+            <div class="modal-content">
+
+                <div class="modal-header bg-primary text-white">
+
+                    <h5 class="modal-title">
+                        Buscar Producto
+                    </h5>
+
+                    <button type="button"
+                            class="btn-close btn-close-white"
+                            @onclick="CerrarBusqueda">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <label>Producto</label>
+
+                    <select class="form-select"
+                            @bind="productoSeleccionado">
+
+                        <option value="">-- Seleccione un producto --</option>
+
+                        @foreach (var item in listaProductos)
+                        {
+                            <option value="@item.ProductID">
+                                @item.ProductID - @item.NombreProducto
+                            </option>
+                        }
+
+                    </select>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-secondary"
+                            @onclick="CerrarBusqueda">
+                        Cancelar
+                    </button>
+
+                    <button class="btn btn-primary"
+                            @onclick="BuscarProducto">
+                        Aceptar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+}
+@code{
+    private string mensaje = "";
+    private bool exito = true;
+    [Parameter]
+    public int? id { get; set; }
+    private ProductoDTO producto = new();
+
+    private List<ProductoDTO> productos = new();
+    private List<SubcategoriaDTO> subcategorias = new();
+    
+    private List<ProductoListaDTO> listaProductos = new();
+
+    private int? productoSeleccionado;
+    private bool mostrarBusqueda = false;
+  protected override async Task OnParametersSetAsync()
+{
+     subcategorias = await SubcategoriaService.ConsultarSubcategorias();
+     listaProductos = await ProductoService.ConsultarListaProductos();
+
+    if (id.HasValue)
+    {
+        var resultado = await ProductoService.BuscarProducto(id.Value);
+
+        if (resultado != null)
+            producto = resultado;
+    }
+    else
+    {
+        producto = new ProductoDTO();
+    }
+}
+   private async Task Guardar()
+   {
+    await ProductoService.GuardarProducto(producto);
+
+    mensaje = "Producto guardado correctamente.";
+    exito = true;
+
+    productos = await ProductoService.ConsultarProductos();
+
+    Nuevo();
+    }
+
+    private async Task Modificar()
+    {
+    await ProductoService.ActualizarProducto(producto);
+
+    mensaje = "Producto actualizado correctamente.";
+    exito = true;
+
+    productos = await ProductoService.ConsultarProductos();
+    }
+
+    private async Task Eliminar()
+    {
+    if (producto.ProductID == 0)
+    {
+        return;
+    }
+
+    await ProductoService.EliminarProducto(producto.ProductID);
+
+    Nuevo();
+
+    Console.WriteLine("Producto eliminado correctamente.");
+    }
+    
+    private async Task Buscar()
+{
+    if (producto.ProductID == 0)
+        return;
+
+    var resultado = await ProductoService.BuscarProducto(producto.ProductID);
+
+    if (resultado != null)
+    {
+        producto = resultado;
+    }
+}
+
+    private void Cancelar()
+    {
+    producto = new ProductoDTO();
+    }
+        void Nuevo()
+    {
+        producto = new ProductoDTO();
+    }
+    private void MostrarBusqueda()
+{
+    mostrarBusqueda = true;
+}
+
+private async Task BuscarProducto()
+{
+    if (productoSeleccionado == null)
+        return;
+
+    var resultado = await ProductoService.BuscarProducto(productoSeleccionado.Value);
+
+    if (resultado != null)
+    {
+        producto = resultado;
+    }
+
+    mostrarBusqueda = false;
+}
+
+    private void CerrarBusqueda()
+    {
+         mostrarBusqueda = false;
+    }
+}

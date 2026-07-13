@@ -1,0 +1,98 @@
+@page "/consulta-categorias"
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
+
+@using AdventureWorksVentas.DTOs
+@inject AdventureWorksVentas.Services.CategoriaService CategoriaService
+
+<PageTitle>Consulta de Categorías</PageTitle>
+
+<h3>Consulta de Categorías</h3>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert @(exito ? "alert-success" : "alert-danger")">
+        @mensaje
+    </div>
+}
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+            <th>Código</th>
+            <th>Nombre Categoría</th>
+            <th>Acción</th>
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        @foreach (var item in categorias)
+        {
+            <tr>
+
+                <td>@item.ProductCategoryID</td>
+
+                <td>@item.NombreCategoria</td>
+
+                <td>
+
+                    <button class="btn btn-success btn-sm me-2"
+                            @onclick='() => Seleccionar(item.ProductCategoryID)'>
+                        Seleccionar
+                    </button>
+
+                    <button class="btn btn-danger btn-sm"
+                            @onclick='() => Eliminar(item.ProductCategoryID)'>
+                        Eliminar
+                    </button>
+
+                </td>
+
+            </tr>
+        }
+
+    </tbody>
+
+</table>
+
+@code {
+
+    private string mensaje = "";
+    private bool exito = true;
+
+    private List<CategoriaDTO> categorias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        categorias = await CategoriaService.ConsultarCategorias();
+    }
+
+    private void Seleccionar(int id)
+    {
+        Navigation.NavigateTo($"/categorias/{id}");
+    }
+
+    private async Task Eliminar(int id)
+    {
+        bool eliminado = await CategoriaService.EliminarCategoria(id);
+
+        if (eliminado)
+        {
+            exito = true;
+            mensaje = "✅ Categoría eliminada correctamente.";
+        }
+        else
+        {
+            exito = false;
+            mensaje = "❌ No se puede eliminar porque la categoría tiene subcategorías asociadas.";
+        }
+
+        categorias = await CategoriaService.ConsultarCategorias();
+    }
+
+}
