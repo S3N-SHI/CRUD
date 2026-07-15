@@ -43,7 +43,9 @@ public class VentaService
                 SubTotal = Convert.ToDecimal(dr["SubTotal"]),
                 TaxAmt = Convert.ToDecimal(dr["TaxAmt"]),
                 Freight = Convert.ToDecimal(dr["Freight"]),
-                TotalDue = Convert.ToDecimal(dr["TotalDue"])
+                TotalDue = Convert.ToDecimal(dr["TotalDue"]),
+                Anulado = Convert.ToBoolean(dr["Anulado"]),
+                FechaAnulacion = dr["FechaAnulacion"] == DBNull.Value ? null : Convert.ToDateTime(dr["FechaAnulacion"])
             });
         }
 
@@ -77,7 +79,9 @@ public class VentaService
             SubTotal = Convert.ToDecimal(dr["SubTotal"]),
             TaxAmt = Convert.ToDecimal(dr["TaxAmt"]),
             Freight = Convert.ToDecimal(dr["Freight"]),
-            TotalDue = Convert.ToDecimal(dr["TotalDue"])
+            TotalDue = Convert.ToDecimal(dr["TotalDue"]),
+            Anulado = Convert.ToBoolean(dr["Anulado"]),
+            FechaAnulacion = dr["FechaAnulacion"] == DBNull.Value ? null : Convert.ToDateTime(dr["FechaAnulacion"])
         };
     }
 
@@ -173,6 +177,52 @@ public async Task AgregarDetalle(int salesOrderID, int productID, short cantidad
     cmd.Parameters.AddWithValue("@SalesOrderID", salesOrderID);
     cmd.Parameters.AddWithValue("@ProductID", productID);
     cmd.Parameters.AddWithValue("@Cantidad", cantidad);
+
+    await cn.OpenAsync();
+
+    await cmd.ExecuteNonQueryAsync();
+}
+
+public async Task ModificarDetalle(int salesOrderDetailID, short cantidad)
+{
+    using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+    using SqlCommand cmd = new("sp_Ventas_ModificarDetalle", cn);
+
+    cmd.CommandType = CommandType.StoredProcedure;
+
+    cmd.Parameters.AddWithValue("@SalesOrderDetailID", salesOrderDetailID);
+    cmd.Parameters.AddWithValue("@Cantidad", cantidad);
+
+    await cn.OpenAsync();
+
+    await cmd.ExecuteNonQueryAsync();
+}
+
+public async Task EliminarDetalle(int salesOrderDetailID)
+{
+    using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+    using SqlCommand cmd = new("sp_Ventas_EliminarDetalle", cn);
+
+    cmd.CommandType = CommandType.StoredProcedure;
+
+    cmd.Parameters.AddWithValue("@SalesOrderDetailID", salesOrderDetailID);
+
+    await cn.OpenAsync();
+
+    await cmd.ExecuteNonQueryAsync();
+}
+
+public async Task AnularVenta(int salesOrderID)
+{
+    using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+    using SqlCommand cmd = new("sp_Ventas_Anular", cn);
+
+    cmd.CommandType = CommandType.StoredProcedure;
+
+    cmd.Parameters.AddWithValue("@SalesOrderID", salesOrderID);
 
     await cn.OpenAsync();
 

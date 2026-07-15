@@ -48,12 +48,20 @@
 
                 <td>
 
-                    <button class="btn btn-success btn-sm"
+                    <button class="btn btn-success btn-sm me-1"
                             @onclick='() => Seleccionar(item.SalesOrderID)'>
 
                         Seleccionar
 
                     </button>
+
+                    <a class="btn btn-outline-danger btn-sm"
+                       href="/ventas/@item.SalesOrderID/pdf"
+                       target="_blank">
+
+                        Ver PDF
+
+                    </a>
 
                 </td>
 

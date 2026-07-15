@@ -27,21 +27,21 @@
             <div class="col-md-4 mb-3">
                 <label class="form-label fw-bold">Número de Venta</label>
                 <input class="form-control"
-                       @bind="venta.SalesOrderID"
+                       value="@(venta.SalesOrderID == 0 ? "Se asigna al guardar" : venta.SalesOrderID.ToString())"
                        readonly />
             </div>
 
             <div class="col-md-4 mb-3">
                 <label class="form-label fw-bold">Fecha</label>
                 <input class="form-control"
-                       value="@venta.OrderDate.ToString("yyyy-MM-dd")"
+                       value="@(venta.SalesOrderID == 0 ? "Se asigna al guardar" : venta.OrderDate.ToString("yyyy-MM-dd"))"
                        readonly />
             </div>
 
             <div class="col-md-4 mb-3">
                 <label class="form-label fw-bold">Cliente</label>
 
-                <select class="form-select" @bind="clienteSeleccionado">
+                <select class="form-select" @bind="clienteSeleccionado" disabled="@venta.Anulado">
 
                   <option value="0">Seleccione...</option>
 
@@ -57,15 +57,25 @@
 
             <div class="col-md-4 mb-3">
                 <label class="form-label fw-bold">Vendedor</label>
-                <input class="form-control"
-                       @bind="venta.Vendedor"
-                       readonly />
+
+                <select class="form-select" @bind="vendedorSeleccionado" disabled="@venta.Anulado">
+
+                  <option value="0">Sin asignar</option>
+
+                  @foreach(var v in listaVendedores)
+                  {
+                     <option value="@v.BusinessEntityID">
+                         @v.NombreVendedor
+                     </option>
+                   }
+
+                </select>
             </div>
 
             <div class="col-md-4 mb-3">
                 <label class="form-label fw-bold">Territorio</label>
                 <input class="form-control"
-                       @bind="venta.Territorio"
+                       value="@(venta.SalesOrderID == 0 ? "Se asigna según el vendedor" : venta.Territorio)"
                        readonly />
             </div>
 
@@ -101,11 +111,31 @@
 
         <hr />
 
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
             <button class="btn btn-success" @onclick="Nuevo">Nuevo</button>
-            <button class="btn btn-primary" @onclick="Guardar">Guardar</button>
+            <button class="btn btn-primary" @onclick="Guardar" disabled="@venta.Anulado">Guardar</button>
             <button class="btn btn-info text-white" @onclick="MostrarBusqueda">Buscar</button>
             <a class="btn btn-secondary" href="/consulta-ventas">Consultar</a>
+
+            @if (venta.SalesOrderID != 0)
+            {
+                <a class="btn btn-outline-danger"
+                   href="/ventas/@venta.SalesOrderID/pdf"
+                   target="_blank">
+                    Ver PDF
+                </a>
+
+                @if (venta.Anulado)
+                {
+                    <span class="badge bg-danger fs-6">
+                        ANULADA el @venta.FechaAnulacion?.ToString("yyyy-MM-dd HH:mm")
+                    </span>
+                }
+                else
+                {
+                    <button class="btn btn-warning" @onclick="Anular">Anular Venta</button>
+                }
+            }
         </div>
 
         <hr />
@@ -116,7 +146,7 @@
 
             <div class="col-md-6">
                 <label class="form-label">Producto</label>
-                <select class="form-select" @bind="productoSeleccionado">
+                <select class="form-select" @bind="productoSeleccionado" disabled="@venta.Anulado">
                     <option value="0">Seleccione...</option>
                     @foreach (var p in listaProductos)
                     {
@@ -129,11 +159,11 @@
 
             <div class="col-md-3">
                 <label class="form-label">Cantidad</label>
-                <input class="form-control" type="number" @bind="cantidadProducto" min="1" />
+                <input class="form-control" type="number" @bind="cantidadProducto" min="1" disabled="@venta.Anulado" />
             </div>
 
             <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-success w-100" @onclick="AgregarProducto">
+                <button class="btn btn-success w-100" @onclick="AgregarProducto" disabled="@venta.Anulado">
                     Agregar
                 </button>
             </div>
@@ -151,6 +181,7 @@
                         <th>Precio</th>
                         <th>Descuento</th>
                         <th>Total</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -160,17 +191,32 @@
                         {
                             <tr>
                                 <td>@item.Producto</td>
-                                <td>@item.OrderQty</td>
+                                <td style="max-width:100px">
+                                    <input type="number" class="form-control form-control-sm"
+                                           @bind="item.OrderQty" min="1" disabled="@venta.Anulado" />
+                                </td>
                                 <td>@item.UnitPrice.ToString("C")</td>
                                 <td>@item.UnitPriceDiscount.ToString("P")</td>
-                                <td>@item.Total.ToString("C")</td>
+                                <td>@((item.OrderQty * item.UnitPrice * (1 - item.UnitPriceDiscount)).ToString("C"))</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary me-1"
+                                            @onclick="() => ModificarItem(item)"
+                                            disabled="@venta.Anulado">
+                                        Guardar
+                                    </button>
+                                    <button class="btn btn-sm btn-danger"
+                                            @onclick="() => QuitarItem(item)"
+                                            disabled="@venta.Anulado">
+                                        Quitar
+                                    </button>
+                                </td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-3">No hay productos agregados al detalle</td>
+                            <td colspan="6" class="text-center text-muted py-3">No hay productos agregados al detalle</td>
                         </tr>
                     }
                 </tbody>
@@ -223,6 +269,7 @@
     private int productoSeleccionado = 0;
     private short cantidadProducto = 1;
     private int clienteSeleccionado;
+    private int vendedorSeleccionado;
     private int? ventaSeleccionada;
     private bool mostrarBusqueda = false;
 
@@ -254,12 +301,16 @@
             {
                 venta = resultado;
                 detalleVenta = await VentaService.ConsultarDetalleVenta(id.Value);
+                clienteSeleccionado = venta.CustomerID;
+                vendedorSeleccionado = venta.BusinessEntityID;
             }
         }
         else
         {
             venta = new VentaDTO();
             detalleVenta = new List<VentaDetalleDTO>();
+            clienteSeleccionado = 0;
+            vendedorSeleccionado = 0;
         }
     }
 
@@ -279,6 +330,8 @@
         {
             venta = resultado;
             detalleVenta = await VentaService.ConsultarDetalleVenta(ventaSeleccionada.Value);
+            clienteSeleccionado = venta.CustomerID;
+            vendedorSeleccionado = venta.BusinessEntityID;
         }
 
         mostrarBusqueda = false;
@@ -295,6 +348,8 @@
         detalleVenta.Clear();
         productoSeleccionado = 0;
         cantidadProducto = 1;
+        clienteSeleccionado = 0;
+        vendedorSeleccionado = 0;
     }
 
     private async Task AgregarProducto()
@@ -331,15 +386,21 @@
 
     private async Task Guardar()
     {
+        if (clienteSeleccionado == 0)
+        {
+            await JS.InvokeVoidAsync("alert", "Debes seleccionar un cliente.");
+            return;
+        }
+
         if (!detalleVenta.Any())
         {
             await JS.InvokeVoidAsync("alert", "No puedes guardar una venta sin productos.");
             return;
         }
 
-        int nuevoID = await VentaService.CrearCabecera(
-            venta.CustomerID,
-            venta.BusinessEntityID);
+        int? vendedorParam = vendedorSeleccionado == 0 ? null : vendedorSeleccionado;
+
+        int nuevoID = await VentaService.CrearCabecera(clienteSeleccionado, vendedorParam);
 
         foreach (var item in detalleVenta)
         {
@@ -355,10 +416,87 @@
         {
             venta = resultado;
             detalleVenta = await VentaService.ConsultarDetalleVenta(nuevoID);
+            clienteSeleccionado = venta.CustomerID;
+            vendedorSeleccionado = venta.BusinessEntityID;
         }
 
         listaVentas = await VentaService.ConsultarListaVentas();
 
         await JS.InvokeVoidAsync("alert", "Venta registrada correctamente.");
+    }
+
+    private async Task ModificarItem(VentaDetalleDTO item)
+    {
+        if (item.OrderQty <= 0)
+        {
+            await JS.InvokeVoidAsync("alert", "La cantidad debe ser mayor a cero.");
+            return;
+        }
+
+        if (item.SalesOrderDetailID == 0)
+        {
+            // Todavia no se guardo la venta: solo se recalcula en memoria.
+            RecalcularTotalesLocal();
+            return;
+        }
+
+        // La venta ya existe en la base: se actualiza de una en SQL.
+        await VentaService.ModificarDetalle(item.SalesOrderDetailID, item.OrderQty);
+
+        var resultado = await VentaService.BuscarVenta(venta.SalesOrderID);
+        if (resultado != null) venta = resultado;
+
+        detalleVenta = await VentaService.ConsultarDetalleVenta(venta.SalesOrderID);
+
+        await JS.InvokeVoidAsync("alert", "Cantidad actualizada.");
+    }
+
+    private async Task QuitarItem(VentaDetalleDTO item)
+    {
+        if (item.SalesOrderDetailID == 0)
+        {
+            // Todavia no se guardo la venta: se saca solo de la lista local.
+            detalleVenta.Remove(item);
+            RecalcularTotalesLocal();
+            return;
+        }
+
+        // La venta ya existe en la base: se elimina de una en SQL.
+        await VentaService.EliminarDetalle(item.SalesOrderDetailID);
+
+        var resultado = await VentaService.BuscarVenta(venta.SalesOrderID);
+        if (resultado != null) venta = resultado;
+
+        detalleVenta = await VentaService.ConsultarDetalleVenta(venta.SalesOrderID);
+    }
+
+    private void RecalcularTotalesLocal()
+    {
+        venta.SubTotal = detalleVenta.Sum(d => d.OrderQty * d.UnitPrice * (1 - d.UnitPriceDiscount));
+        venta.TaxAmt = venta.SubTotal * 0.12m;
+        venta.Freight = venta.SubTotal * 0.03m;
+        venta.TotalDue = venta.SubTotal + venta.TaxAmt + venta.Freight;
+    }
+
+    private async Task Anular()
+    {
+        if (venta.SalesOrderID == 0)
+            return;
+
+        bool confirmado = await JS.InvokeAsync<bool>(
+            "confirm",
+            "¿Seguro que querés anular esta venta? No se puede deshacer.");
+
+        if (!confirmado)
+            return;
+
+        await VentaService.AnularVenta(venta.SalesOrderID);
+
+        var resultado = await VentaService.BuscarVenta(venta.SalesOrderID);
+        if (resultado != null) venta = resultado;
+
+        listaVentas = await VentaService.ConsultarListaVentas();
+
+        await JS.InvokeVoidAsync("alert", "Venta anulada correctamente.");
     }
 }

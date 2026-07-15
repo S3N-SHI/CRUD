@@ -23,4 +23,8 @@ public class VentaDTO
     public decimal Freight { get; set; }
 
     public decimal TotalDue { get; set; }
+
+    public bool Anulado { get; set; }
+
+    public DateTime? FechaAnulacion { get; set; }
 }

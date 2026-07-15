@@ -1,0 +1,255 @@
+@page "/reportes"
+@rendermode InteractiveServer
+
+@using System.Data
+
+@inject AdventureWorksVentas.Services.ReporteService ReporteService
+@inject AdventureWorksVentas.Services.ClienteService ClienteService
+@inject AdventureWorksVentas.Services.VendedorService VendedorService
+@inject AdventureWorksVentas.Services.ProductoService ProductoService
+@inject AdventureWorksVentas.Services.CategoriaService CategoriaService
+@inject AdventureWorksVentas.Services.TerritorioService TerritorioService
+
+<PageTitle>Reportes</PageTitle>
+
+<h3>Reportes de Ventas</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Generador de Reportes
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Tipo de Reporte</label>
+                <select class="form-select" @bind="tipoReporte">
+                    <option value="DetalleVentas">Detalle de Ventas</option>
+                    <option value="ResumenVentas">Resumen de Ventas</option>
+                    <option value="PorProducto">Ventas por Producto</option>
+                    <option value="PorCategoria">Ventas por Categoría</option>
+                    <option value="PorTerritorio">Ventas por Territorio</option>
+                </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Desde</label>
+                <input type="date" class="form-control" @bind="fechaInicio" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaFin" />
+            </div>
+
+            @if (tipoReporte is "DetalleVentas" or "ResumenVentas")
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Cliente (opcional)</label>
+                    <select class="form-select" @bind="clienteFiltro">
+                        <option value="0">Todos</option>
+                        @foreach (var c in listaClientes)
+                        {
+                            <option value="@c.CustomerID">@c.NombreCliente</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Vendedor (opcional)</label>
+                    <select class="form-select" @bind="vendedorFiltro">
+                        <option value="0">Todos</option>
+                        @foreach (var v in listaVendedores)
+                        {
+                            <option value="@v.BusinessEntityID">@v.NombreVendedor</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @if (tipoReporte == "PorProducto")
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Producto (opcional)</label>
+                    <select class="form-select" @bind="productoFiltro">
+                        <option value="0">Todos</option>
+                        @foreach (var p in listaProductos)
+                        {
+                            <option value="@p.ProductID">@p.NombreProducto</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Modo</label>
+                    <select class="form-select" @bind="modo">
+                        <option value="RESUMEN">Resumen (agrupado)</option>
+                        <option value="DETALLE">Detalle (venta por venta)</option>
+                    </select>
+                </div>
+            }
+
+            @if (tipoReporte == "PorCategoria")
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Categoría (opcional)</label>
+                    <select class="form-select" @bind="categoriaFiltro">
+                        <option value="0">Todas</option>
+                        @foreach (var c in listaCategorias)
+                        {
+                            <option value="@c.ProductCategoryID">@c.NombreCategoria</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Modo</label>
+                    <select class="form-select" @bind="modo">
+                        <option value="RESUMEN">Resumen (agrupado)</option>
+                        <option value="DETALLE">Detalle (venta por venta)</option>
+                    </select>
+                </div>
+            }
+
+            @if (tipoReporte == "PorTerritorio")
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Territorio (opcional)</label>
+                    <select class="form-select" @bind="territorioFiltro">
+                        <option value="0">Todos</option>
+                        @foreach (var t in listaTerritorios)
+                        {
+                            <option value="@t.TerritoryID">@t.NombreTerritorio</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Modo</label>
+                    <select class="form-select" @bind="modo">
+                        <option value="RESUMEN">Resumen (agrupado)</option>
+                        <option value="DETALLE">Detalle (venta por venta)</option>
+                    </select>
+                </div>
+            }
+
+        </div>
+
+        <button class="btn btn-primary" @onclick="Generar">Generar Reporte</button>
+
+        @if (generando)
+        {
+            <div class="mt-3">Generando...</div>
+        }
+        else if (resultado != null)
+        {
+            <hr />
+
+            @if (resultado.Rows.Count == 0)
+            {
+                <div class="alert alert-info mt-3">No hay datos para los filtros seleccionados.</div>
+            }
+            else
+            {
+                <div class="table-responsive mt-3">
+                    <table class="table table-striped table-bordered table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                @foreach (DataColumn col in resultado.Columns)
+                                {
+                                    <th>@col.ColumnName</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (DataRow fila in resultado.Rows)
+                            {
+                                <tr>
+                                    @foreach (DataColumn col in resultado.Columns)
+                                    {
+                                        <td>@FormatearValor(fila[col])</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+
+    </div>
+
+</div>
+
+@code {
+    private string tipoReporte = "DetalleVentas";
+    private string modo = "RESUMEN";
+
+    private DateTime fechaInicio = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime fechaFin = DateTime.Today;
+
+    private int clienteFiltro = 0;
+    private int vendedorFiltro = 0;
+    private int productoFiltro = 0;
+    private int categoriaFiltro = 0;
+    private int territorioFiltro = 0;
+
+    private bool generando = false;
+    private DataTable? resultado;
+
+    private List<AdventureWorksVentas.DTOs.ClienteListaDTO> listaClientes = new();
+    private List<AdventureWorksVentas.DTOs.VendedorListaDTO> listaVendedores = new();
+    private List<AdventureWorksVentas.DTOs.ProductoListaDTO> listaProductos = new();
+    private List<AdventureWorksVentas.DTOs.CategoriaListaDTO> listaCategorias = new();
+    private List<AdventureWorksVentas.DTOs.TerritorioListaDTO> listaTerritorios = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        listaClientes = await ClienteService.ConsultarListaClientes();
+        listaVendedores = await VendedorService.ConsultarListaVendedores();
+        listaProductos = await ProductoService.ConsultarListaProductos();
+        listaCategorias = await CategoriaService.ConsultarListaCategorias();
+        listaTerritorios = await TerritorioService.ConsultarListaTerritorios();
+    }
+
+    private async Task Generar()
+    {
+        generando = true;
+        resultado = null;
+        StateHasChanged();
+
+        int? cliente = clienteFiltro == 0 ? null : clienteFiltro;
+        int? vendedor = vendedorFiltro == 0 ? null : vendedorFiltro;
+        int? producto = productoFiltro == 0 ? null : productoFiltro;
+        int? categoria = categoriaFiltro == 0 ? null : categoriaFiltro;
+        int? territorio = territorioFiltro == 0 ? null : territorioFiltro;
+
+        resultado = tipoReporte switch
+        {
+            "DetalleVentas" => await ReporteService.DetalleVentas(fechaInicio, fechaFin, cliente, vendedor),
+            "ResumenVentas" => await ReporteService.ResumenVentas(fechaInicio, fechaFin, cliente, vendedor),
+            "PorProducto" => await ReporteService.VentasPorProducto(fechaInicio, fechaFin, producto, modo),
+            "PorCategoria" => await ReporteService.VentasPorCategoria(fechaInicio, fechaFin, categoria, modo),
+            "PorTerritorio" => await ReporteService.VentasPorTerritorio(fechaInicio, fechaFin, territorio, modo),
+            _ => new DataTable()
+        };
+
+        generando = false;
+    }
+
+    private string FormatearValor(object valor)
+    {
+        if (valor == DBNull.Value) return "";
+
+        if (valor is decimal dec) return dec.ToString("C");
+
+        if (valor is DateTime fecha) return fecha.ToString("yyyy-MM-dd");
+
+        if (valor is bool b) return b ? "Sí" : "No";
+
+        return valor.ToString() ?? "";
+    }
+}

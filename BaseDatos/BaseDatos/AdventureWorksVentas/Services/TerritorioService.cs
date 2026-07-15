@@ -71,6 +71,67 @@ public class TerritorioService
         return null;
     }
 
+    public async Task<int> GuardarTerritorio(TerritorioDTO territorio)
+    {
+        using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+        using SqlCommand cmd = new("sp_Territorios_Insertar", cn);
+
+        cmd.CommandType = CommandType.StoredProcedure;
+
+        cmd.Parameters.AddWithValue("@NombreTerritorio", territorio.NombreTerritorio);
+        cmd.Parameters.AddWithValue("@CountryRegionCode", territorio.CountryRegionCode);
+        cmd.Parameters.AddWithValue("@Grupo", territorio.Grupo);
+
+        await cn.OpenAsync();
+
+        var resultado = await cmd.ExecuteScalarAsync();
+
+        return Convert.ToInt32(resultado);
+    }
+
+    public async Task ActualizarTerritorio(TerritorioDTO territorio)
+    {
+        using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+        using SqlCommand cmd = new("sp_Territorios_Actualizar", cn);
+
+        cmd.CommandType = CommandType.StoredProcedure;
+
+        cmd.Parameters.AddWithValue("@TerritoryID", territorio.TerritoryID);
+        cmd.Parameters.AddWithValue("@NombreTerritorio", territorio.NombreTerritorio);
+        cmd.Parameters.AddWithValue("@CountryRegionCode", territorio.CountryRegionCode);
+        cmd.Parameters.AddWithValue("@Grupo", territorio.Grupo);
+
+        await cn.OpenAsync();
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task<bool> EliminarTerritorio(int territoryID)
+    {
+        try
+        {
+            using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+            using SqlCommand cmd = new("sp_Territorios_Eliminar", cn);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@TerritoryID", territoryID);
+
+            await cn.OpenAsync();
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<List<TerritorioListaDTO>> ConsultarListaTerritorios()
     {
         List<TerritorioListaDTO> lista = new();

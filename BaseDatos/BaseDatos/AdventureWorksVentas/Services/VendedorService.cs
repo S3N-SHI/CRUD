@@ -76,6 +76,71 @@ public class VendedorService
 
         return null;
     }
+    public async Task<int> GuardarVendedor(VendedorDTO vendedor)
+    {
+        using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+        using SqlCommand cmd = new("sp_Vendedores_Insertar", cn);
+
+        cmd.CommandType = CommandType.StoredProcedure;
+
+        cmd.Parameters.AddWithValue("@NombreVendedor", vendedor.NombreVendedor);
+        cmd.Parameters.AddWithValue("@TerritoryID", vendedor.TerritoryID.HasValue ? vendedor.TerritoryID.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@SalesQuota", vendedor.SalesQuota.HasValue ? vendedor.SalesQuota.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@Bonus", vendedor.Bonus);
+        cmd.Parameters.AddWithValue("@CommissionPct", vendedor.CommissionPct);
+
+        await cn.OpenAsync();
+
+        var resultado = await cmd.ExecuteScalarAsync();
+
+        return Convert.ToInt32(resultado);
+    }
+
+    public async Task ActualizarVendedor(VendedorDTO vendedor)
+    {
+        using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+        using SqlCommand cmd = new("sp_Vendedores_Actualizar", cn);
+
+        cmd.CommandType = CommandType.StoredProcedure;
+
+        cmd.Parameters.AddWithValue("@BusinessEntityID", vendedor.BusinessEntityID);
+        cmd.Parameters.AddWithValue("@NombreVendedor", vendedor.NombreVendedor);
+        cmd.Parameters.AddWithValue("@TerritoryID", vendedor.TerritoryID.HasValue ? vendedor.TerritoryID.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@SalesQuota", vendedor.SalesQuota.HasValue ? vendedor.SalesQuota.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@Bonus", vendedor.Bonus);
+        cmd.Parameters.AddWithValue("@CommissionPct", vendedor.CommissionPct);
+
+        await cn.OpenAsync();
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task<bool> EliminarVendedor(int businessEntityID)
+    {
+        try
+        {
+            using SqlConnection cn = new(_context.Database.GetConnectionString());
+
+            using SqlCommand cmd = new("sp_Vendedores_Eliminar", cn);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@BusinessEntityID", businessEntityID);
+
+            await cn.OpenAsync();
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public async Task<List<VendedorListaDTO>> ConsultarListaVendedores()
 {
     List<VendedorListaDTO> lista = new();

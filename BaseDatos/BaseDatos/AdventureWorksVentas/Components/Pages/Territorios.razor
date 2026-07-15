@@ -20,7 +20,7 @@
 <div class="row">
 
     <div class="col-md-6 mb-3">
-        <label>Código</label>
+        <label>🔒 Código <small class="text-muted">(autogenerado)</small></label>
         <input class="form-control"
                @bind="territorio.TerritoryID"
                readonly />
@@ -29,27 +29,41 @@
     <div class="col-md-6 mb-3">
         <label>Nombre</label>
         <input class="form-control"
-               @bind="territorio.NombreTerritorio"
-               readonly />
+               @bind="territorio.NombreTerritorio" />
     </div>
 
     <div class="col-md-6 mb-3">
         <label>Código País</label>
         <input class="form-control"
                @bind="territorio.CountryRegionCode"
-               readonly />
+               maxlength="3" />
     </div>
 
     <div class="col-md-6 mb-3">
         <label>Grupo</label>
         <input class="form-control"
-               @bind="territorio.Grupo"
-               readonly />
+               @bind="territorio.Grupo" />
     </div>
 
 </div>
 
 <hr />
+
+<button class="btn btn-success me-2"
+        @onclick="NuevoTerritorio">
+    Nuevo
+</button>
+
+<button class="btn btn-primary me-2"
+        @onclick="Guardar">
+    Guardar
+</button>
+
+<button class="btn btn-danger me-2"
+        @onclick="Eliminar"
+        disabled="@(territorio.TerritoryID == 0)">
+    Eliminar
+</button>
 
 <button class="btn btn-info me-2"
         @onclick="MostrarBusqueda">
@@ -60,6 +74,11 @@
    href="/consulta-territorios">
     Consultar
 </a>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info mt-3 mb-0">@mensaje</div>
+}
 
 </div>
 
@@ -141,6 +160,8 @@
 
     private bool mostrarBusqueda = false;
 
+    private string mensaje = "";
+
     protected override async Task OnParametersSetAsync()
     {
         territorios = await TerritorioService.ConsultarTerritorios();
@@ -159,6 +180,57 @@
         else
         {
             territorio = new TerritorioDTO();
+        }
+    }
+
+    private void NuevoTerritorio()
+    {
+        territorio = new TerritorioDTO();
+        mensaje = "";
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(territorio.NombreTerritorio) ||
+            string.IsNullOrWhiteSpace(territorio.CountryRegionCode) ||
+            string.IsNullOrWhiteSpace(territorio.Grupo))
+        {
+            mensaje = "Nombre, código de país y grupo son obligatorios.";
+            return;
+        }
+
+        if (territorio.TerritoryID == 0)
+        {
+            var nuevoId = await TerritorioService.GuardarTerritorio(territorio);
+            mensaje = $"Territorio creado con código {nuevoId}.";
+            territorio = await TerritorioService.BuscarTerritorio(nuevoId) ?? new TerritorioDTO();
+        }
+        else
+        {
+            await TerritorioService.ActualizarTerritorio(territorio);
+            mensaje = "Territorio actualizado correctamente.";
+        }
+
+        territorios = await TerritorioService.ConsultarTerritorios();
+        listaTerritorios = await TerritorioService.ConsultarListaTerritorios();
+    }
+
+    private async Task Eliminar()
+    {
+        if (territorio.TerritoryID == 0)
+            return;
+
+        var exito = await TerritorioService.EliminarTerritorio(territorio.TerritoryID);
+
+        mensaje = exito
+            ? "Territorio eliminado correctamente."
+            : "No se pudo eliminar: el territorio tiene vendedores o ventas asociadas.";
+
+        if (exito)
+        {
+            territorio = new TerritorioDTO();
+            territorios = await TerritorioService.ConsultarTerritorios();
+            listaTerritorios = await TerritorioService.ConsultarListaTerritorios();
         }
     }
 

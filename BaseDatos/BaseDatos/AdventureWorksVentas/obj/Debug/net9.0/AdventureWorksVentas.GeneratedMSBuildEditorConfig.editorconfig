@@ -79,8 +79,16 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Password.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYXNzd29yZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Productos.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0b3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Reportes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBvcnRlcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Subcategorias.razor]
@@ -89,6 +97,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Territorios.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xUZXJyaXRvcmlvcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Usuarios.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xVc3Vhcmlvcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/rodge/OneDrive/Escritorio/CRUD/BaseDatos/BaseDatos/AdventureWorksVentas/Components/Pages/Vendedores.razor]

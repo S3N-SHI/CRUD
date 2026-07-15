@@ -20,7 +20,7 @@
 <div class="row">
 
     <div class="col-md-6 mb-3">
-        <label>Código</label>
+        <label>🔒 Código <small class="text-muted">(autogenerado)</small></label>
         <input class="form-control"
                @bind="vendedor.BusinessEntityID"
                readonly />
@@ -29,36 +29,31 @@
     <div class="col-md-6 mb-3">
         <label>Nombre</label>
         <input class="form-control"
-               @bind="vendedor.NombreVendedor"
-               readonly />
+               @bind="vendedor.NombreVendedor" />
     </div>
 
     <div class="col-md-6 mb-3">
-        <label>Territorio</label>
+        <label>Territorio (Código)</label>
         <input class="form-control"
-               @bind="vendedor.TerritoryID"
-               readonly />
+               @bind="vendedor.TerritoryID" />
     </div>
 
     <div class="col-md-6 mb-3">
         <label>Cuota de Venta</label>
         <input class="form-control"
-               @bind="vendedor.SalesQuota"
-               readonly />
+               @bind="vendedor.SalesQuota" />
     </div>
 
     <div class="col-md-6 mb-3">
         <label>Bonificación</label>
         <input class="form-control"
-               @bind="vendedor.Bonus"
-               readonly />
+               @bind="vendedor.Bonus" />
     </div>
 
     <div class="col-md-6 mb-3">
         <label>Comisión</label>
         <input class="form-control"
-               @bind="vendedor.CommissionPct"
-               readonly />
+               @bind="vendedor.CommissionPct" />
     </div>
 
     <div class="col-md-6 mb-3">
@@ -72,6 +67,22 @@
 
 <hr />
 
+<button class="btn btn-success me-2"
+        @onclick="NuevoVendedor">
+    Nuevo
+</button>
+
+<button class="btn btn-primary me-2"
+        @onclick="Guardar">
+    Guardar
+</button>
+
+<button class="btn btn-danger me-2"
+        @onclick="Eliminar"
+        disabled="@(vendedor.BusinessEntityID == 0)">
+    Eliminar
+</button>
+
 <button class="btn btn-info me-2"
         @onclick="MostrarBusqueda">
     Buscar
@@ -81,6 +92,11 @@
    href="/consulta-vendedores">
     Consultar
 </a>
+
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alert alert-info mt-3 mb-0">@mensaje</div>
+}
 
 </div>
 
@@ -162,6 +178,8 @@
 
     private bool mostrarBusqueda = false;
 
+    private string mensaje = "";
+
     protected override async Task OnParametersSetAsync()
     {
         vendedores = await VendedorService.ConsultarVendedores();
@@ -180,6 +198,55 @@
         else
         {
             vendedor = new VendedorDTO();
+        }
+    }
+
+    private void NuevoVendedor()
+    {
+        vendedor = new VendedorDTO();
+        mensaje = "";
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(vendedor.NombreVendedor))
+        {
+            mensaje = "El nombre del vendedor es obligatorio.";
+            return;
+        }
+
+        if (vendedor.BusinessEntityID == 0)
+        {
+            var nuevoId = await VendedorService.GuardarVendedor(vendedor);
+            mensaje = $"Vendedor creado con código {nuevoId}.";
+            vendedor = await VendedorService.BuscarVendedor(nuevoId) ?? new VendedorDTO();
+        }
+        else
+        {
+            await VendedorService.ActualizarVendedor(vendedor);
+            mensaje = "Vendedor actualizado correctamente.";
+        }
+
+        vendedores = await VendedorService.ConsultarVendedores();
+        listaVendedores = await VendedorService.ConsultarListaVendedores();
+    }
+
+    private async Task Eliminar()
+    {
+        if (vendedor.BusinessEntityID == 0)
+            return;
+
+        var exito = await VendedorService.EliminarVendedor(vendedor.BusinessEntityID);
+
+        mensaje = exito
+            ? "Vendedor eliminado correctamente."
+            : "No se pudo eliminar: el vendedor tiene ventas asociadas.";
+
+        if (exito)
+        {
+            vendedor = new VendedorDTO();
+            vendedores = await VendedorService.ConsultarVendedores();
+            listaVendedores = await VendedorService.ConsultarListaVendedores();
         }
     }
 

@@ -20,7 +20,7 @@
         <div class="row">
 
             <div class="col-md-6 mb-3">
-                <label>Código</label>
+                <label>🔒 Código <small class="text-muted">(autogenerado)</small></label>
                 <input class="form-control"
                        @bind="cliente.CustomerID"
                        readonly />
@@ -29,27 +29,40 @@
             <div class="col-md-6 mb-3">
                 <label>Nombre</label>
                 <input class="form-control"
-                       @bind="cliente.NombreCliente"
-                       readonly />
+                       @bind="cliente.NombreCliente" />
             </div>
 
             <div class="col-md-6 mb-3">
                 <label>Correo</label>
                 <input class="form-control"
-                       @bind="cliente.Email"
-                       readonly />
+                       @bind="cliente.Email" />
             </div>
 
             <div class="col-md-6 mb-3">
                 <label>Teléfono</label>
                 <input class="form-control"
-                       @bind="cliente.Telefono"
-                       readonly />
+                       @bind="cliente.Telefono" />
             </div>
 
         </div>
 
         <hr />
+
+        <button class="btn btn-success me-2"
+                @onclick="NuevoCliente">
+            Nuevo
+        </button>
+
+        <button class="btn btn-primary me-2"
+                @onclick="Guardar">
+            Guardar
+        </button>
+
+        <button class="btn btn-danger me-2"
+                @onclick="Eliminar"
+                disabled="@(cliente.CustomerID == 0)">
+            Eliminar
+        </button>
 
         <button class="btn btn-info me-2"
                 @onclick="MostrarBusqueda">
@@ -60,6 +73,11 @@
            href="/consulta-clientes">
             Consultar
         </a>
+
+        @if (!string.IsNullOrEmpty(mensaje))
+        {
+            <div class="alert alert-info mt-3 mb-0">@mensaje</div>
+        }
 
     </div>
 
@@ -141,6 +159,8 @@
 
     private bool mostrarBusqueda = false;
 
+    private string mensaje = "";
+
     protected override async Task OnParametersSetAsync()
     {
         listaClientes = await ClienteService.ConsultarClientes();
@@ -157,6 +177,53 @@
         else
         {
             cliente = new ClienteDTO();
+        }
+    }
+
+    private void NuevoCliente()
+    {
+        cliente = new ClienteDTO();
+        mensaje = "";
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(cliente.NombreCliente))
+        {
+            mensaje = "El nombre del cliente es obligatorio.";
+            return;
+        }
+
+        if (cliente.CustomerID == 0)
+        {
+            var nuevoId = await ClienteService.GuardarCliente(cliente);
+            mensaje = $"Cliente creado con código {nuevoId}.";
+            cliente = await ClienteService.BuscarCliente(nuevoId) ?? new ClienteDTO();
+        }
+        else
+        {
+            await ClienteService.ActualizarCliente(cliente);
+            mensaje = "Cliente actualizado correctamente.";
+        }
+
+        listaClientes = await ClienteService.ConsultarClientes();
+    }
+
+    private async Task Eliminar()
+    {
+        if (cliente.CustomerID == 0)
+            return;
+
+        var exito = await ClienteService.EliminarCliente(cliente.CustomerID);
+
+        mensaje = exito
+            ? "Cliente eliminado correctamente."
+            : "No se pudo eliminar: el cliente tiene ventas u otros registros asociados.";
+
+        if (exito)
+        {
+            cliente = new ClienteDTO();
+            listaClientes = await ClienteService.ConsultarClientes();
         }
     }
 

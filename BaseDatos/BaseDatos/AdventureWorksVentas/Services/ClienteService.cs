@@ -70,6 +70,43 @@ public class ClienteService
 
     return null;
 }
+public async Task<int> GuardarCliente(ClienteDTO cliente)
+{
+    using SqlConnection cn = new SqlConnection(_context.Database.GetConnectionString());
+
+    using SqlCommand cmd = new SqlCommand("sp_Clientes_Insertar", cn);
+
+    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+
+    cmd.Parameters.AddWithValue("@NombreCliente", cliente.NombreCliente);
+    cmd.Parameters.AddWithValue("@Email", string.IsNullOrEmpty(cliente.Email) ? DBNull.Value : cliente.Email);
+    cmd.Parameters.AddWithValue("@Telefono", string.IsNullOrEmpty(cliente.Telefono) ? DBNull.Value : cliente.Telefono);
+
+    await cn.OpenAsync();
+
+    var resultado = await cmd.ExecuteScalarAsync();
+
+    return Convert.ToInt32(resultado);
+}
+
+public async Task ActualizarCliente(ClienteDTO cliente)
+{
+    using SqlConnection cn = new SqlConnection(_context.Database.GetConnectionString());
+
+    using SqlCommand cmd = new SqlCommand("sp_Clientes_Actualizar", cn);
+
+    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+
+    cmd.Parameters.AddWithValue("@CustomerID", cliente.CustomerID);
+    cmd.Parameters.AddWithValue("@NombreCliente", cliente.NombreCliente);
+    cmd.Parameters.AddWithValue("@Email", string.IsNullOrEmpty(cliente.Email) ? DBNull.Value : cliente.Email);
+    cmd.Parameters.AddWithValue("@Telefono", string.IsNullOrEmpty(cliente.Telefono) ? DBNull.Value : cliente.Telefono);
+
+    await cn.OpenAsync();
+
+    await cmd.ExecuteNonQueryAsync();
+}
+
 public async Task<bool> EliminarCliente(int customerID)
 {
     try

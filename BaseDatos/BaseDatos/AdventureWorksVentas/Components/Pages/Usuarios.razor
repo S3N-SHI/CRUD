@@ -1,0 +1,194 @@
+@page "/usuarios"
+@rendermode InteractiveServer
+
+@using AdventureWorksVentas.DTOs
+
+@inject AdventureWorksVentas.Services.UsuarioService UsuarioService
+@inject Microsoft.JSInterop.IJSRuntime JS
+
+<PageTitle>Usuarios</PageTitle>
+
+<h3>Administración de Usuarios</h3>
+
+<div class="card shadow mt-3">
+
+    <div class="card-header bg-primary text-white">
+        Usuarios del Sistema
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">🔒 Código <small class="text-muted fw-normal">(autogenerado)</small></label>
+                <input class="form-control" value="@usuario.UsuarioID" readonly />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Nombre de Usuario</label>
+                <input class="form-control" @bind="usuario.NombreUsuario" readonly="@(usuario.UsuarioID != 0)" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Nombre Completo</label>
+                <input class="form-control" @bind="usuario.NombreCompleto" />
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Rol</label>
+                <select class="form-select" @bind="usuario.Rol">
+                    <option value="Administrador">Administrador</option>
+                    <option value="Vendedor">Vendedor</option>
+                    <option value="Consulta">Solo consulta</option>
+                </select>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label fw-bold">Activo</label>
+                <select class="form-select" @bind="usuario.Activo">
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+
+            @if (usuario.UsuarioID == 0)
+            {
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Contraseña inicial</label>
+                    <input type="password" class="form-control" @bind="passwordNueva" />
+                </div>
+            }
+
+        </div>
+
+        <button class="btn btn-success me-2" @onclick="Nuevo">Nuevo</button>
+        <button class="btn btn-primary me-2" @onclick="Guardar">Guardar</button>
+        <button class="btn btn-danger me-2" @onclick="Eliminar" disabled="@(usuario.UsuarioID == 0)">Eliminar</button>
+        <button class="btn btn-info me-2" @onclick="() => mostrarLista = !mostrarLista">
+            @(mostrarLista ? "Ocultar lista" : "Ver lista")
+        </button>
+
+        @if (!string.IsNullOrEmpty(mensaje))
+        {
+            <div class="alert alert-info mt-3 mb-0">@mensaje</div>
+        }
+
+        @if (mostrarLista)
+        {
+            <hr />
+            <table class="table table-striped table-bordered mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Rol</th>
+                        <th>Activo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in usuarios)
+                    {
+                        <tr>
+                            <td>@u.UsuarioID</td>
+                            <td>@u.NombreUsuario</td>
+                            <td>@u.NombreCompleto</td>
+                            <td>@u.Rol</td>
+                            <td>@(u.Activo ? "Sí" : "No")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => Cargar(u.UsuarioID)">
+                                    Editar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+    </div>
+
+</div>
+
+@code {
+    private UsuarioDTO usuario = new();
+    private List<UsuarioDTO> usuarios = new();
+    private string passwordNueva = "";
+    private string mensaje = "";
+    private bool mostrarLista = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        usuarios = await UsuarioService.ConsultarUsuarios();
+    }
+
+    private void Nuevo()
+    {
+        usuario = new UsuarioDTO();
+        passwordNueva = "";
+        mensaje = "";
+    }
+
+    private async Task Cargar(int id)
+    {
+        var resultado = await UsuarioService.BuscarUsuario(id);
+        if (resultado != null) usuario = resultado;
+        mensaje = "";
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(usuario.NombreUsuario) || string.IsNullOrWhiteSpace(usuario.NombreCompleto))
+        {
+            mensaje = "Nombre de usuario y nombre completo son obligatorios.";
+            return;
+        }
+
+        if (usuario.UsuarioID == 0)
+        {
+            if (string.IsNullOrWhiteSpace(passwordNueva) || passwordNueva.Length < 6)
+            {
+                mensaje = "La contraseña inicial debe tener al menos 6 caracteres.";
+                return;
+            }
+
+            try
+            {
+                var nuevoId = await UsuarioService.GuardarUsuario(usuario, passwordNueva);
+                mensaje = $"Usuario creado con código {nuevoId}.";
+                usuario = await UsuarioService.BuscarUsuario(nuevoId) ?? new UsuarioDTO();
+            }
+            catch (Exception ex)
+            {
+                mensaje = ex.Message.Contains("nombre de usuario")
+                    ? "Ya existe un usuario con ese nombre de usuario."
+                    : "No se pudo crear el usuario.";
+                return;
+            }
+        }
+        else
+        {
+            await UsuarioService.ActualizarUsuario(usuario);
+            mensaje = "Usuario actualizado correctamente.";
+        }
+
+        usuarios = await UsuarioService.ConsultarUsuarios();
+    }
+
+    private async Task Eliminar()
+    {
+        if (usuario.UsuarioID == 0) return;
+
+        var exito = await UsuarioService.EliminarUsuario(usuario.UsuarioID);
+
+        mensaje = exito ? "Usuario eliminado correctamente." : "No se pudo eliminar el usuario.";
+
+        if (exito)
+        {
+            usuario = new UsuarioDTO();
+            usuarios = await UsuarioService.ConsultarUsuarios();
+        }
+    }
+}
